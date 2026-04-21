@@ -32,6 +32,18 @@ python .\market_regime_score.py
 - 1건: 시장 종합 알림(점수/패턴 가이드 포함)
 - 2건: 테마 RSI 과매도 알림(장마감 종가 기준, 일봉/주봉 RSI14)
 
+## GitHub Actions 자동 실행
+- 워크플로우 파일: `.github/workflows/market-alert-kr.yml`
+- 실행 주기: 평일 `07:20 KST` 자동 실행 (GitHub cron은 UTC 기준)
+- 수동 실행: GitHub 저장소 `Actions` 탭에서 `Market Alert KR` 선택 후 `Run workflow`
+
+### GitHub Secrets 설정(필수)
+- `Settings` → `Secrets and variables` → `Actions` → `New repository secret`
+- `TELEGRAM_BOT_TOKEN` 추가
+- `TELEGRAM_CHAT_ID` 추가
+
+시크릿이 없으면 워크플로우는 실패하도록 되어 있습니다.
+
 ## 테마 RSI 대상 (총 150종목)
 - 우주(50)
 - 양자(50)
