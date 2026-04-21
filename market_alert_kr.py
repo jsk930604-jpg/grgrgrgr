@@ -494,6 +494,15 @@ def clip_telegram_text(text: str, limit: int = 3900) -> str:
     return text[: limit - 80] + "\n...(메시지 길이로 일부 종목이 생략되었습니다)"
 
 
+def to_console_safe_text(text: str) -> str:
+    encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
+    try:
+        text.encode(encoding)
+        return text
+    except UnicodeEncodeError:
+        return text.encode(encoding, errors="replace").decode(encoding, errors="replace")
+
+
 def detect_trend(current: float, previous: float, threshold: float) -> str:
     diff = current - previous
     if diff > threshold:
@@ -764,6 +773,14 @@ def main(argv: list[str] | None = None) -> int:
     load_dotenv(dotenv_path)
 
     source_note = "수동 입력값"
+    manual_values = [args.y10, args.y2, args.vix, args.dxy, args.wti, args.move]
+    manual_all_missing = all(v is None for v in manual_values)
+    manual_any_missing = any(v is None for v in manual_values)
+
+    # 편의 동작: 인자가 없거나 --dry-run만 준 경우 자동조회 모드로 실행한다.
+    if not args.auto and manual_all_missing:
+        args.auto = True
+
     if args.auto:
         try:
             snapshot, source_note = fetch_realtime_snapshot()
@@ -771,8 +788,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"실시간 자동조회 실패: {exc}")
             return 1
     else:
-        required_values = [args.y10, args.y2, args.vix, args.dxy, args.wti, args.move]
-        if any(v is None for v in required_values):
+        if manual_any_missing:
             print("수동 모드에서는 --y10 --y2 --vix --dxy --wti --move가 필요합니다. (또는 --auto)")
             return 1
         snapshot = Snapshot(
@@ -798,7 +814,7 @@ def main(argv: list[str] | None = None) -> int:
 
     result = evaluate(snapshot)
     market_message = build_message(snapshot, result, source_note=source_note)
-    print(market_message)
+    print(to_console_safe_text(market_message))
 
     try:
         theme_rows, theme_source_note = analyze_theme_rsi()
@@ -810,7 +826,7 @@ def main(argv: list[str] | None = None) -> int:
             f"생성 실패: {exc}\n"
             "※ 시장 종합 알림은 정상 전송됩니다."
         )
-    print("\n" + theme_message)
+    print("\n" + to_console_safe_text(theme_message))
 
     if args.dry_run:
         print("\n[dry-run] 텔레그램 전송은 생략했습니다.")
