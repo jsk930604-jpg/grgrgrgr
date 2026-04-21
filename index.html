@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>시장 알림 코드 가이드</title>
+    <meta
+      name="description"
+      content="market_regime_score.py 운영 가이드: 지표 해석, RSI 과매도 조건, 실행 방법, 자동화 스케줄"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="bg"></div>
+    <header class="top">
+      <div class="brand">
+        <span class="dot"></span>
+        <span>Market Alert Guide</span>
+      </div>
+      <nav>
+        <a href="#overview">개요</a>
+        <a href="#logic">판정 로직</a>
+        <a href="#themes">테마 종목</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero">
+        <p class="kicker">DOCUMENTATION</p>
+        <h1>시장 알림 코드 운영 가이드</h1>
+        <p>
+          이 페이지는 <code>market_regime_score.py</code> 기준으로
+          <strong>시장 종합 알림</strong> + <strong>테마 RSI 과매도 알림</strong>
+          동작을 한눈에 확인하기 위한 안내 문서입니다.
+        </p>
+        <p class="updated">최근 정리: <span id="updatedDate">-</span></p>
+      </section>
+
+      <section class="panel" id="overview">
+        <h2>시스템 개요</h2>
+        <div class="grid three">
+          <article class="card">
+            <h3>알림 1: 시장 종합</h3>
+            <ul>
+              <li>금리차(10Y-2Y), VIX, DXY, WTI, MOVE, NAS100 자동조회</li>
+              <li>공격/방어 조건 + 점수 + 패턴으로 스탠스 결정</li>
+              <li>점수/패턴 가이드 문구 포함</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>알림 2: 테마 RSI</h3>
+            <ul>
+              <li>우주/양자/원자력 각 50종목 (총 150종목)</li>
+              <li>일봉 RSI14, 주봉 RSI14 과매도 탐지</li>
+              <li>조건: 일봉 ≤ 30 또는 주봉 ≤ 30</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>스케줄</h3>
+            <ul>
+              <li>매일 오전 8:50 (KST) 자동 실행</li>
+              <li>텔레그램 2건 연속 전송</li>
+              <li>실패 시 에러 원인 확인 가능</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel" id="logic">
+        <h2>판정 로직</h2>
+        <div class="grid two">
+          <article class="card">
+            <h3>핵심 조건</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>조건</th>
+                  <th>규칙</th>
+                  <th>해석</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>공격 조건</td>
+                  <td>금리차↑ + VIX↓ + DXY↓</td>
+                  <td>상승 우호</td>
+                </tr>
+                <tr>
+                  <td>방어 조건</td>
+                  <td>금리차↓ + VIX↑ + DXY↑</td>
+                  <td>리스크 확대</td>
+                </tr>
+                <tr>
+                  <td>MOVE 구간</td>
+                  <td>~100 / 100~120 / 120+</td>
+                  <td>안정 / 주의 / 위험</td>
+                </tr>
+              </tbody>
+            </table>
+          </article>
+          <article class="card">
+            <h3>점수 & 패턴</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>항목</th>
+                  <th>기준</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>상승 점수</td>
+                  <td>4~5 우호, 2~3 중립, 0~1 약세</td>
+                </tr>
+                <tr>
+                  <td>위험 점수</td>
+                  <td>0~1 안정, 2~3 주의, 4+ 위험</td>
+                </tr>
+                <tr>
+                  <td>패턴 가이드</td>
+                  <td>상승장 초입=적극, 하락장/하락 직전=방어</td>
+                </tr>
+              </tbody>
+            </table>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>테마 RSI 기준</h2>
+        <div class="grid two">
+          <article class="card">
+            <h3>종목 구성</h3>
+            <ul>
+              <li>우주 50, 양자 50, 원자력 50</li>
+              <li>총 150종목을 순회 조회</li>
+              <li>조회 실패 종목은 별도 표시</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>계산 규칙</h3>
+            <ul>
+              <li>지표: RSI14 (Wilder 방식)</li>
+              <li>장중이면 미완성 캔들 제외</li>
+              <li>종가는 장마감 기준(previousClose 우선)</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel" id="themes">
+        <h2>테마별 포함 종목 (각 50개)</h2>
+        <div class="grid three">
+          <article class="card">
+            <h3>우주</h3>
+            <div class="ticker-list">
+              <span>RKLB</span><span>LUNR</span><span>ASTS</span><span>RDW</span><span>PL</span>
+              <span>SPIR</span><span>SATS</span><span>BKSY</span><span>LLAP</span><span>MNTS</span>
+              <span>SPCE</span><span>VSAT</span><span>IRDM</span><span>GILT</span><span>SATL</span>
+              <span>BA</span><span>LMT</span><span>NOC</span><span>RTX</span><span>GD</span>
+              <span>LHX</span><span>HII</span><span>TXT</span><span>GE</span><span>HEI</span>
+              <span>MRCY</span><span>UFO</span><span>ROKT</span><span>ITA</span><span>AVAV</span>
+              <span>KTOS</span><span>LDOS</span><span>TDG</span><span>HWM</span><span>CW</span>
+              <span>SPR</span><span>AIR</span><span>JOBY</span><span>ACHR</span><span>EH</span>
+              <span>EVTL</span><span>BLDE</span><span>UAVS</span><span>ARKX</span><span>XAR</span>
+              <span>PPA</span><span>DFEN</span><span>CACI</span><span>SAIC</span><span>DRS</span>
+            </div>
+          </article>
+          <article class="card">
+            <h3>양자</h3>
+            <div class="ticker-list">
+              <span>IONQ</span><span>RGTI</span><span>QBTS</span><span>QUBT</span><span>ARQQ</span>
+              <span>IBM</span><span>GOOGL</span><span>MSFT</span><span>HON</span><span>INTC</span>
+              <span>NVDA</span><span>AMD</span><span>AMZN</span><span>META</span><span>AAPL</span>
+              <span>ORCL</span><span>TSM</span><span>ASML</span><span>MU</span><span>ANET</span>
+              <span>SMCI</span><span>DELL</span><span>HPQ</span><span>CDNS</span><span>SNPS</span>
+              <span>ADI</span><span>TXN</span><span>MRVL</span><span>QTUM</span><span>ACN</span>
+              <span>AVGO</span><span>QCOM</span><span>AMAT</span><span>KLAC</span><span>LRCX</span>
+              <span>ON</span><span>MCHP</span><span>NXPI</span><span>WDC</span><span>STX</span>
+              <span>CSCO</span><span>HPE</span><span>ADBE</span><span>CRM</span><span>NOW</span>
+              <span>PANW</span><span>CRWD</span><span>NET</span><span>DOCN</span><span>SNOW</span>
+            </div>
+          </article>
+          <article class="card">
+            <h3>원자력</h3>
+            <div class="ticker-list">
+              <span>CCJ</span><span>UEC</span><span>UUUU</span><span>LEU</span><span>SMR</span>
+              <span>OKLO</span><span>NNE</span><span>BWXT</span><span>LTBR</span><span>URA</span>
+              <span>URNM</span><span>NLR</span><span>DNN</span><span>NXE</span><span>UROY</span>
+              <span>EU</span><span>CEG</span><span>VST</span><span>DUK</span><span>SO</span>
+              <span>EXC</span><span>AEP</span><span>NEE</span><span>FE</span><span>ETR</span>
+              <span>PPL</span><span>PCG</span><span>XEL</span><span>FLR</span><span>GEV</span>
+              <span>SRE</span><span>ED</span><span>EIX</span><span>PEG</span><span>D</span>
+              <span>WEC</span><span>ES</span><span>AEE</span><span>CMS</span><span>CNP</span>
+              <span>DTE</span><span>ATO</span><span>NI</span><span>LNT</span><span>EVRG</span>
+              <span>NRG</span><span>TLN</span><span>PNW</span><span>UGI</span><span>IDA</span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+    </main>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
