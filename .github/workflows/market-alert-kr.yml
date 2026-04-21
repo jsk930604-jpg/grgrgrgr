@@ -3,8 +3,8 @@ name: Market Alert KR
 on:
   workflow_dispatch:
   schedule:
-    # UTC 기준 22:20 = KST 기준 다음날 07:20 (평일)
-    - cron: "30 07 * * 1-5"
+    # UTC 08:00 = KST 17:00 (weekdays)
+    - cron: "0 8 * * 1-5"
 
 concurrency:
   group: market-alert-kr

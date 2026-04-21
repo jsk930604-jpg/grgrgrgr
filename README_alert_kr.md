@@ -34,7 +34,7 @@ python .\market_regime_score.py
 
 ## GitHub Actions 자동 실행
 - 워크플로우 파일: `.github/workflows/market-alert-kr.yml`
-- 실행 주기: 평일 `07:20 KST` 자동 실행 (GitHub cron은 UTC 기준)
+- 실행 주기: 평일 `17:00 KST` 자동 실행 (GitHub cron은 UTC 기준)
 - 수동 실행: GitHub 저장소 `Actions` 탭에서 `Market Alert KR` 선택 후 `Run workflow`
 
 ### GitHub Secrets 설정(필수)
