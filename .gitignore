@@ -1,4 +1,6 @@
 .env
+.kis_token_cache.json
+last_run.log
 __pycache__/
 *.pyc
 *.pyo

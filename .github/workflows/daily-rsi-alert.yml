@@ -1,0 +1,38 @@
+name: Daily RSI Telegram Alert
+
+on:
+  schedule:
+    # 18:30 Asia/Seoul = 09:30 UTC
+    - cron: "30 9 * * *"
+  workflow_dispatch:
+
+jobs:
+  send-alert:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Send RSI alert
+        env:
+          KIS_APP_KEY: ${{ secrets.KIS_APP_KEY }}
+          KIS_APP_SECRET: ${{ secrets.KIS_APP_SECRET }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          KIS_BASE_URL: ${{ vars.KIS_BASE_URL || 'https://openapi.koreainvestment.com:9443' }}
+          WATCHLIST_PATH: watchlist.txt
+          RSI_PERIOD: ${{ vars.RSI_PERIOD || '14' }}
+          RSI_OVERSOLD: ${{ vars.RSI_OVERSOLD || '30' }}
+          REQUEST_SLEEP_SEC: ${{ vars.REQUEST_SLEEP_SEC || '0.25' }}
+        run: python rsi_oversold_alert.py
