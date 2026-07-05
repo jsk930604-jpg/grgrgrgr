@@ -3,7 +3,7 @@ name: Daily RSI Telegram Alert
 on:
   schedule:
     # 18:30 Asia/Seoul = 09:30 UTC
-    - cron: "30 9 * * *"
+    - cron: "30 9 * * 1-5"
   workflow_dispatch:
 
 jobs:
