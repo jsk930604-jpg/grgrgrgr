@@ -1,0 +1,45 @@
+name: US Stock RSI Telegram Alert
+
+on:
+  schedule:
+    # 21:30 UTC = 06:30 KST(다음날). 미국 서머타임(EDT) 기준 장마감(16:00 ET) 이후,
+    # 표준시(EST) 기준으로도 장마감 이후 시간대라 안전하게 걸쳐집니다.
+    - cron: "30 21 * * 1-5"
+  workflow_dispatch:
+
+concurrency:
+  group: us-stock-rsi-alert
+  cancel-in-progress: false
+
+jobs:
+  send-alert:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      TZ: Asia/Seoul
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Send US stock RSI alert
+        env:
+          KIS_APP_KEY: ${{ secrets.KIS_APP_KEY }}
+          KIS_APP_SECRET: ${{ secrets.KIS_APP_SECRET }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          KIS_BASE_URL: ${{ vars.KIS_BASE_URL || 'https://openapi.koreainvestment.com:9443' }}
+          US_WATCHLIST_PATH: us_watchlist.txt
+          RSI_PERIOD: ${{ vars.RSI_PERIOD || '14' }}
+          RSI_OVERSOLD: ${{ vars.RSI_OVERSOLD || '30' }}
+          REQUEST_SLEEP_SEC: ${{ vars.REQUEST_SLEEP_SEC || '0.25' }}
+        run: python us_stock_rsi_alert.py
