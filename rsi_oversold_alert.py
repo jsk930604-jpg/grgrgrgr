@@ -356,10 +356,10 @@ def fetch_kr_market_snapshot(token: str, code: str) -> tuple[str | None, float |
         raise RuntimeError(f"{code} 시세 조회 실패: {data.get('msg1') or data}")
 
     output = data.get("output") or {}
-    market_name = str(output.get("rprs_mrkt_kor_name") or "")
-    if "코스피" in market_name:
+    market_name = str(output.get("rprs_mrkt_kor_name") or "").upper()
+    if "코스피" in market_name or "KOSPI" in market_name:
         market = "KOSPI"
-    elif "코스닥" in market_name:
+    elif "코스닥" in market_name or "KOSDAQ" in market_name:
         market = "KOSDAQ"
     else:
         market = None

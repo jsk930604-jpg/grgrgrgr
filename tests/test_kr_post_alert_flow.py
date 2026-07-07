@@ -20,6 +20,50 @@ def make_weekly_bars(count=15):
     ]
 
 
+class _FakeResponse:
+    def __init__(self, payload):
+        self._payload = payload
+
+    def raise_for_status(self):
+        return None
+
+    def json(self):
+        return self._payload
+
+
+def test_fetch_kr_market_snapshot_recognizes_english_market_name(monkeypatch):
+    # 실제 KIS API는 rprs_mrkt_kor_name을 "코스피"가 아니라 "KOSPI200" 같은 영문으로 주기도 한다.
+    payload = {
+        "rt_cd": "0",
+        "output": {"rprs_mrkt_kor_name": "KOSPI200", "stck_prpr": "70000", "acml_vol": "12345678"},
+    }
+    monkeypatch.setattr(kr.requests, "get", lambda *a, **k: _FakeResponse(payload))
+    market, price, volume = kr.fetch_kr_market_snapshot("dummy-token", "005930")
+    assert market == "KOSPI"
+    assert price == 70000.0
+    assert volume == 12345678.0
+
+
+def test_fetch_kr_market_snapshot_recognizes_kosdaq_english_name(monkeypatch):
+    payload = {
+        "rt_cd": "0",
+        "output": {"rprs_mrkt_kor_name": "KOSDAQ", "stck_prpr": "5000", "acml_vol": "999999"},
+    }
+    monkeypatch.setattr(kr.requests, "get", lambda *a, **k: _FakeResponse(payload))
+    market, price, volume = kr.fetch_kr_market_snapshot("dummy-token", "000002")
+    assert market == "KOSDAQ"
+
+
+def test_fetch_kr_market_snapshot_recognizes_korean_market_name(monkeypatch):
+    payload = {
+        "rt_cd": "0",
+        "output": {"rprs_mrkt_kor_name": "코스닥", "stck_prpr": "5000", "acml_vol": "999999"},
+    }
+    monkeypatch.setattr(kr.requests, "get", lambda *a, **k: _FakeResponse(payload))
+    market, _price, _volume = kr.fetch_kr_market_snapshot("dummy-token", "000003")
+    assert market == "KOSDAQ"
+
+
 def test_run_kr_volume_summary_sends_nothing_when_zero_pass(monkeypatch):
     item = make_item()
     alerts = [(item, 20.0, None)]
