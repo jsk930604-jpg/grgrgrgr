@@ -42,4 +42,5 @@ jobs:
           RSI_PERIOD: ${{ vars.RSI_PERIOD || '14' }}
           RSI_OVERSOLD: ${{ vars.RSI_OVERSOLD || '30' }}
           REQUEST_SLEEP_SEC: ${{ vars.REQUEST_SLEEP_SEC || '0.25' }}
+          US_MIN_AVG_20D_VOLUME: ${{ vars.US_MIN_AVG_20D_VOLUME || '5000000' }}
         run: python us_stock_rsi_alert.py

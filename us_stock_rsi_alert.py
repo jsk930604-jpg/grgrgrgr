@@ -30,6 +30,8 @@ from typing import Iterable
 
 import requests
 
+import volume_profile as vp
+
 
 BASE_DIR = Path(__file__).resolve().parent
 ENV_PATH = BASE_DIR / ".env"
@@ -293,6 +295,137 @@ def format_alerts(alerts: list[tuple[WatchItem, float | None, float | None]]) ->
     return "\n".join(lines).strip()
 
 
+# ---------------------------------------------------------------------------
+# 아래는 신규 추가: 주봉 매물대 요약 (기존 RSI 과매도 스캔/알림 로직은 변경하지 않음)
+# 과매도 Telegram 알림이 "실제로 전송된 직후"에만, 그 알림에 포함된 종목만 대상으로 실행된다.
+# ---------------------------------------------------------------------------
+
+def fetch_ohlcv(token: str, ticker: str, period_code: str, pages: int = 2) -> list["vp.OhlcvBar"]:
+    """20일 평균 거래량 / 주봉 매물대 계산용 전체 OHLCV.
+    기존 fetch_prices와 같은 엔드포인트를 별도로 호출하며(기존 함수는 변경하지 않음),
+    거래소 자동탐색 로직(NAS->NYS->AMS, 캐시 재사용)도 동일하게 적용한다."""
+
+    candidates = [_EXCHANGE_CACHE[ticker]] if ticker in _EXCHANGE_CACHE else list(EXCHANGE_CANDIDATES)
+
+    last_error: Exception | None = None
+    for excd in candidates:
+        try:
+            bymd = ""
+            dated_bars: dict[str, vp.OhlcvBar] = {}
+            for _ in range(pages):
+                data = _dailyprice_request(token, excd, ticker, period_code, bymd)
+                if data.get("rt_cd") not in (None, "0"):
+                    raise RuntimeError(f"{ticker}({excd}) 조회 실패: {data.get('msg1') or data}")
+
+                rows = data.get("output2") or []
+                if not rows:
+                    break
+
+                for row in rows:
+                    date = row.get("xymd") or ""
+                    close = row.get("clos")
+                    if not date or close in (None, ""):
+                        continue
+                    dated_bars[date] = vp.OhlcvBar(
+                        date=date,
+                        open=float(str(row.get("open") or close).replace(",", "")),
+                        high=float(str(row.get("high") or close).replace(",", "")),
+                        low=float(str(row.get("low") or close).replace(",", "")),
+                        close=float(str(close).replace(",", "")),
+                        volume=float(str(row.get("tvol") or 0).replace(",", "")),
+                    )
+
+                oldest = min((row.get("xymd") for row in rows if row.get("xymd")), default="")
+                if not oldest or oldest == bymd:
+                    break
+                bymd = oldest
+                time.sleep(REQUEST_SLEEP_SEC)
+
+            if dated_bars:
+                _EXCHANGE_CACHE[ticker] = excd
+                return [bar for _, bar in sorted(dated_bars.items())]
+        except Exception as exc:  # noqa: BLE001 - 다음 거래소로 폴백
+            last_error = exc
+            continue
+
+    if last_error:
+        raise last_error
+    return []
+
+
+def build_us_volume_summary_candidates(
+    token: str,
+    alerts: list[tuple[WatchItem, float | None, float | None]],
+    fetch_daily_fn=None,
+    fetch_weekly_fn=None,
+    log_fn=print,
+) -> list["vp.VolumeSummaryCandidate"]:
+    """방금 발송된 미국 주식 과매도 알림(alerts)에 포함된 종목만 대상으로 후속 요약 후보를 만든다."""
+    fetch_daily_fn = fetch_daily_fn or (lambda ticker: fetch_ohlcv(token, ticker, "0", pages=2))
+    fetch_weekly_fn = fetch_weekly_fn or (lambda ticker: fetch_ohlcv(token, ticker, "1", pages=1))
+
+    candidates: list[vp.VolumeSummaryCandidate] = []
+    for item, _daily_rsi, _weekly_rsi in alerts:
+        try:
+            daily_bars = fetch_daily_fn(item.ticker)
+            time.sleep(REQUEST_SLEEP_SEC)
+            weekly_bars = fetch_weekly_fn(item.ticker)
+
+            if not daily_bars:
+                log_fn(f"[매물대 요약 오류] {item.ticker} 일봉 데이터 없음, 건너뜀")
+                continue
+
+            current_price = daily_bars[-1].close
+            today_volume = daily_bars[-1].volume
+
+            candidates.append(
+                vp.VolumeSummaryCandidate(
+                    theme=item.theme,
+                    label=item.ticker,
+                    market="US",
+                    daily_bars=daily_bars,
+                    weekly_bars=weekly_bars,
+                    current_price=current_price,
+                    today_volume=today_volume,
+                )
+            )
+        except Exception as exc:  # noqa: BLE001 - 개별 종목 오류가 전체 후속 처리를 중단시키지 않음
+            log_fn(f"[매물대 요약 오류] {item.ticker} 데이터 조회 실패, 건너뜀: {exc}")
+            continue
+        time.sleep(REQUEST_SLEEP_SEC)
+
+    return candidates
+
+
+def run_us_volume_summary(
+    token: str,
+    alerts: list[tuple[WatchItem, float | None, float | None]],
+    send_fn=None,
+    log_fn=print,
+    candidate_builder=None,
+) -> str:
+    """미국 주식 RSI 과매도 알림 전송 '직후'에만 호출한다.
+
+    - alerts(방금 전송된 과매도 알림 대상)에 포함된 종목만 사용한다.
+    - 20일 평균 거래량 필터(US 기준)를 통과한 종목이 1개 이상이면 [주봉 매물대 요약] 메시지 1개를 보낸다.
+    - 통과 종목이 0개면 아무것도 보내지 않는다(빈 문자열 반환).
+    - 이 단계에서 발생하는 오류는 이미 전송된 과매도 알림에 영향을 주지 않는다.
+    """
+    send_fn = send_fn or send_telegram
+    candidate_builder = candidate_builder or (lambda: build_us_volume_summary_candidates(token, alerts, log_fn=log_fn))
+
+    try:
+        candidates = candidate_builder()
+        rows = vp.build_summary_rows(candidates, log_fn=log_fn)
+        message = vp.format_volume_summary("미국 종목", rows)
+        if message:
+            send_fn(message)
+        return message
+    except Exception as exc:  # noqa: BLE001 - 매물대 요약 실패가 과매도 알림 자체를 되돌리지 않음
+        log_fn(f"[매물대 요약 오류] 후속 요약 처리 중 예외 발생, 건너뜀: {exc}")
+        return ""
+
+
 def main() -> int:
     require_config()
     items = parse_watchlist(US_WATCHLIST_PATH)
@@ -325,6 +458,10 @@ def main() -> int:
 
     send_telegram(message)
     print(message)
+
+    # 과매도 알림이 실제로 전송된 직후에만, 그 알림에 포함된 종목만 대상으로 실행
+    run_us_volume_summary(token, alerts)
+
     return 0
 
 

@@ -37,4 +37,6 @@ jobs:
           RSI_PERIOD: ${{ vars.RSI_PERIOD || '14' }}
           RSI_OVERSOLD: ${{ vars.RSI_OVERSOLD || '30' }}
           REQUEST_SLEEP_SEC: ${{ vars.REQUEST_SLEEP_SEC || '0.25' }}
+          KOSPI_MIN_AVG_20D_VOLUME: ${{ vars.KOSPI_MIN_AVG_20D_VOLUME || '1000000' }}
+          KOSDAQ_MIN_AVG_20D_VOLUME: ${{ vars.KOSDAQ_MIN_AVG_20D_VOLUME || '200000' }}
         run: python rsi_oversold_alert.py
