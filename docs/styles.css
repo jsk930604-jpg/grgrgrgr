@@ -1,0 +1,408 @@
+:root {
+  --bg: #f2f4f6;
+  --surface: #ffffff;
+  --border: #e5e8eb;
+  --text-primary: #191f28;
+  --text-secondary: #4e5968;
+  --text-tertiary: #8b95a1;
+  --blue: #3182f6;
+  --blue-dim: #eaf2ff;
+  --up: #f04452;
+  --up-dim: #fdecee;
+  --down: #3b82f6;
+  --down-dim: #eaf2ff;
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+  --shadow: 0 2px 12px rgba(25, 31, 40, 0.05);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: var(--bg);
+  padding-bottom: 40px;
+}
+
+/* ---------- Header ---------- */
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--surface);
+  padding: 20px 20px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.app-header .title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.app-header h1 {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.updated-at {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin: 0 0 14px;
+}
+
+.market-toggle {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.pill-btn {
+  border: none;
+  background: var(--bg);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.pill-btn.active {
+  background: var(--text-primary);
+  color: #ffffff;
+}
+
+.tab-bar {
+  display: flex;
+  gap: 4px;
+}
+
+.tab-btn {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 12px 4px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.tab-btn.active {
+  color: var(--blue);
+  border-bottom-color: var(--blue);
+}
+
+/* ---------- Content ---------- */
+
+.tab-panel {
+  display: none;
+  padding: 16px 20px 0;
+}
+
+.tab-panel.active {
+  display: block;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-tertiary);
+}
+
+.empty-state .emoji {
+  font-size: 32px;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.empty-state p {
+  margin: 4px 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* ---------- Stock list cards ---------- */
+
+.stock-card {
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 10px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.stock-card:active {
+  transform: scale(0.98);
+}
+
+.stock-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.stock-name-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stock-name {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.stock-meta {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.stock-price {
+  font-size: 16px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.rsi-badges {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-secondary);
+}
+
+.badge.oversold {
+  background: var(--up-dim);
+  color: var(--up);
+}
+
+.theme-tag {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--blue);
+  background: var(--blue-dim);
+  padding: 3px 8px;
+  border-radius: 8px;
+}
+
+/* ---------- Chart tab ---------- */
+
+.chip-row {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  margin-bottom: 4px;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.chip-row::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  flex: none;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.chip.active {
+  border-color: var(--blue);
+  background: var(--blue);
+  color: #ffffff;
+}
+
+.chart-card {
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  box-shadow: var(--shadow);
+  margin-bottom: 14px;
+}
+
+.chart-card h3 {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  font-weight: 600;
+  margin: 0 0 10px;
+}
+
+.chart-header-price {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.chart-header-price .big {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.chart-header-price .delta {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+canvas {
+  max-width: 100%;
+}
+
+/* ---------- Volume profile tab ---------- */
+
+.theme-group {
+  margin-bottom: 18px;
+}
+
+.theme-group h2 {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  margin: 0 0 8px;
+  padding-left: 2px;
+}
+
+.profile-card {
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 10px;
+  box-shadow: var(--shadow);
+}
+
+.profile-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.profile-name {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.profile-position {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: var(--blue-dim);
+  color: var(--blue);
+}
+
+.gauge {
+  position: relative;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--down-dim), var(--blue-dim) 50%, var(--up-dim));
+  margin: 18px 0 6px;
+}
+
+.gauge-marker {
+  position: absolute;
+  top: -5px;
+  width: 2px;
+  height: 18px;
+  background: var(--text-primary);
+  border-radius: 2px;
+}
+
+.gauge-marker::after {
+  content: attr(data-label);
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.gauge-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-bottom: 14px;
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 16px;
+}
+
+.profile-grid .item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.profile-grid .label {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.profile-grid .value {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.up-text {
+  color: var(--up);
+}
+
+.down-text {
+  color: var(--down);
+}
+
+footer.credit {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  padding: 24px 20px 0;
+}

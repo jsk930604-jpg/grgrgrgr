@@ -20,7 +20,7 @@ def make_weekly_bars(count=15, price=50.0):
     ]
 
 
-def test_run_us_volume_summary_sends_nothing_when_zero_pass():
+def test_run_us_volume_summary_sends_nothing_when_zero_pass(tmp_path):
     item = make_item()
     alerts = [(item, 20.0, None)]
 
@@ -39,12 +39,13 @@ def test_run_us_volume_summary_sends_nothing_when_zero_pass():
         candidate_builder=lambda: us.build_us_volume_summary_candidates(
             "dummy", alerts, fetch_daily_fn=fake_daily, fetch_weekly_fn=fake_weekly
         ),
+        dashboard_output_dir=tmp_path,
     )
     assert message == ""
     assert sent == []
 
 
-def test_run_us_volume_summary_sends_exactly_one_message_for_multiple_passes():
+def test_run_us_volume_summary_sends_exactly_one_message_for_multiple_passes(tmp_path):
     alerts = [
         (make_item(ticker="AAAA"), 20.0, None),
         (make_item(ticker="BBBB"), 18.0, None),
@@ -65,6 +66,7 @@ def test_run_us_volume_summary_sends_exactly_one_message_for_multiple_passes():
         candidate_builder=lambda: us.build_us_volume_summary_candidates(
             "dummy", alerts, fetch_daily_fn=fake_daily, fetch_weekly_fn=fake_weekly
         ),
+        dashboard_output_dir=tmp_path,
     )
     assert message != ""
     assert len(sent) == 1
@@ -72,7 +74,7 @@ def test_run_us_volume_summary_sends_exactly_one_message_for_multiple_passes():
     assert "BBBB" in sent[0]
 
 
-def test_run_us_volume_summary_data_error_does_not_raise():
+def test_run_us_volume_summary_data_error_does_not_raise(tmp_path):
     item = make_item(ticker="CCCC")
     alerts = [(item, 20.0, None)]
 
@@ -91,6 +93,7 @@ def test_run_us_volume_summary_data_error_does_not_raise():
         candidate_builder=lambda: us.build_us_volume_summary_candidates(
             "dummy", alerts, fetch_daily_fn=raising_daily, fetch_weekly_fn=fake_weekly
         ),
+        dashboard_output_dir=tmp_path,
     )
     assert message == ""
     assert sent == []

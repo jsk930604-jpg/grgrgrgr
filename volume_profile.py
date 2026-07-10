@@ -39,6 +39,35 @@ MIN_VOLUME_BY_MARKET = {
 }
 
 
+def rsi_series(closes: Sequence[float], period: int = 14) -> list[float | None]:
+    """차트 표시용 구간별 RSI 값 리스트. 각 스크립트의 기존 calculate_rsi(단일 최신값)와는
+    별개의 새 함수이며, 앞의 period개 구간은 계산 불가하므로 None으로 채운다."""
+    values = list(closes)
+    result: list[float | None] = [None] * len(values)
+    if len(values) <= period:
+        return result
+
+    gains: list[float] = []
+    losses: list[float] = []
+    for previous, current in zip(values, values[1:]):
+        change = current - previous
+        gains.append(max(change, 0))
+        losses.append(max(-change, 0))
+
+    avg_gain = sum(gains[:period]) / period
+    avg_loss = sum(losses[:period]) / period
+    result[period] = 100.0 if avg_loss == 0 else 100 - (100 / (1 + avg_gain / avg_loss))
+
+    idx = period
+    for gain, loss in zip(gains[period:], losses[period:]):
+        avg_gain = ((avg_gain * (period - 1)) + gain) / period
+        avg_loss = ((avg_loss * (period - 1)) + loss) / period
+        idx += 1
+        result[idx] = 100.0 if avg_loss == 0 else 100 - (100 / (1 + avg_gain / avg_loss))
+
+    return result
+
+
 @dataclass(frozen=True)
 class OhlcvBar:
     date: str  # YYYYMMDD

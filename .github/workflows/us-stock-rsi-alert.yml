@@ -7,6 +7,9 @@ on:
     - cron: "30 21 * * 1-5"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 concurrency:
   group: us-stock-rsi-alert
   cancel-in-progress: false
@@ -43,4 +46,18 @@ jobs:
           RSI_OVERSOLD: ${{ vars.RSI_OVERSOLD || '30' }}
           REQUEST_SLEEP_SEC: ${{ vars.REQUEST_SLEEP_SEC || '0.25' }}
           US_MIN_AVG_20D_VOLUME: ${{ vars.US_MIN_AVG_20D_VOLUME || '5000000' }}
+          DASHBOARD_URL: ${{ vars.DASHBOARD_URL || 'https://jsk930604-jpg.github.io/grgrgrgr/' }}
         run: python us_stock_rsi_alert.py
+
+      - name: Commit dashboard data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/data/us_latest.json
+          if git diff --cached --quiet; then
+            echo "대시보드 데이터 변경 없음"
+          else
+            git commit -m "Update US dashboard data [skip ci]"
+            git pull --rebase origin main
+            git push
+          fi

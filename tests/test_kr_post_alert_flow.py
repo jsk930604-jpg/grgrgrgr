@@ -64,7 +64,7 @@ def test_fetch_kr_market_snapshot_recognizes_korean_market_name(monkeypatch):
     assert market == "KOSDAQ"
 
 
-def test_run_kr_volume_summary_sends_nothing_when_zero_pass(monkeypatch):
+def test_run_kr_volume_summary_sends_nothing_when_zero_pass(monkeypatch, tmp_path):
     item = make_item()
     alerts = [(item, 20.0, None)]
 
@@ -86,12 +86,13 @@ def test_run_kr_volume_summary_sends_nothing_when_zero_pass(monkeypatch):
         candidate_builder=lambda: kr.build_kr_volume_summary_candidates(
             "dummy", alerts, fetch_daily_fn=fake_daily, fetch_weekly_fn=fake_weekly, fetch_snapshot_fn=fake_snapshot
         ),
+        dashboard_output_dir=tmp_path,
     )
     assert message == ""
     assert sent == []
 
 
-def test_run_kr_volume_summary_sends_exactly_one_message_for_multiple_passes(monkeypatch):
+def test_run_kr_volume_summary_sends_exactly_one_message_for_multiple_passes(monkeypatch, tmp_path):
     items = [
         (make_item(code="000001", name="A"), 20.0, None),
         (make_item(code="000002", name="B"), 18.0, None),
@@ -115,6 +116,7 @@ def test_run_kr_volume_summary_sends_exactly_one_message_for_multiple_passes(mon
         candidate_builder=lambda: kr.build_kr_volume_summary_candidates(
             "dummy", items, fetch_daily_fn=fake_daily, fetch_weekly_fn=fake_weekly, fetch_snapshot_fn=fake_snapshot
         ),
+        dashboard_output_dir=tmp_path,
     )
     assert message != ""
     assert len(sent) == 1  # 통과 종목이 여러 개여도 요약 메시지는 최대 1개
@@ -122,7 +124,7 @@ def test_run_kr_volume_summary_sends_exactly_one_message_for_multiple_passes(mon
     assert "B(000002)" in sent[0]
 
 
-def test_run_kr_volume_summary_excludes_unknown_market(monkeypatch):
+def test_run_kr_volume_summary_excludes_unknown_market(monkeypatch, tmp_path):
     item = make_item(code="000003", name="C")
     alerts = [(item, 20.0, None)]
     logs = []
@@ -144,12 +146,13 @@ def test_run_kr_volume_summary_excludes_unknown_market(monkeypatch):
         candidate_builder=lambda: kr.build_kr_volume_summary_candidates(
             "dummy", alerts, fetch_daily_fn=fake_daily, fetch_weekly_fn=fake_weekly, fetch_snapshot_fn=fake_snapshot
         ),
+        dashboard_output_dir=tmp_path,
     )
     assert message == ""
     assert any("시장 구분 확인 불가" in log for log in logs)
 
 
-def test_run_kr_volume_summary_data_error_does_not_raise(monkeypatch):
+def test_run_kr_volume_summary_data_error_does_not_raise(monkeypatch, tmp_path):
     item = make_item(code="000004", name="D")
     alerts = [(item, 20.0, None)]
 
@@ -172,6 +175,7 @@ def test_run_kr_volume_summary_data_error_does_not_raise(monkeypatch):
         candidate_builder=lambda: kr.build_kr_volume_summary_candidates(
             "dummy", alerts, fetch_daily_fn=raising_daily, fetch_weekly_fn=fake_weekly, fetch_snapshot_fn=fake_snapshot
         ),
+        dashboard_output_dir=tmp_path,
     )
     assert message == ""
     assert sent == []

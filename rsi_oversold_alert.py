@@ -41,6 +41,8 @@ TELEGRAM_CHAT_ID = ENV.get("TELEGRAM_CHAT_ID", "")
 RSI_PERIOD = int(ENV.get("RSI_PERIOD", "14"))
 RSI_OVERSOLD = float(ENV.get("RSI_OVERSOLD", "30"))
 REQUEST_SLEEP_SEC = float(ENV.get("REQUEST_SLEEP_SEC", "0.25"))
+DASHBOARD_URL = ENV.get("DASHBOARD_URL", "https://jsk930604-jpg.github.io/grgrgrgr/")
+DASHBOARD_DATA_DIR = BASE_DIR / "docs" / "data"
 WATCHLIST_PATH = Path(
     ENV.get("WATCHLIST_PATH", str(Path.home() / "Desktop" / "테마별 종목코드.txt"))
 ).expanduser()
@@ -419,12 +421,95 @@ def build_kr_volume_summary_candidates(
     return candidates
 
 
+def export_kr_dashboard_data(
+    alerts: list[tuple[WatchItem, float | None, float | None]],
+    candidates: list["vp.VolumeSummaryCandidate"],
+    rows: list["vp.SummaryRow"],
+    output_dir: Path | None = None,
+) -> dict:
+    """대시보드(GitHub Pages)에서 읽어갈 JSON 스냅샷을 만든다.
+    alerts에 포함된 종목(=방금 전송된 과매도 알림 대상)만 사용하며,
+    매물대 요약(rows)은 필터를 통과한 종목만 별도 필드로 붙는다."""
+
+    output_dir = output_dir or DASHBOARD_DATA_DIR
+    candidates_by_label = {c.label: c for c in candidates}
+    rows_by_label = {r.label: r for r in rows}
+
+    stocks = []
+    for item, daily_rsi, weekly_rsi in alerts:
+        label = f"{item.name}({item.code})"
+        candidate = candidates_by_label.get(label)
+        if candidate is None:
+            continue
+
+        closes_full = [bar.close for bar in candidate.daily_bars]
+        rsi_full = vp.rsi_series(closes_full, RSI_PERIOD)
+        bars = list(candidate.daily_bars)[-90:]
+        rsi_tail = rsi_full[-90:]
+        daily_bars_json = [
+            {
+                "date": bar.date,
+                "open": bar.open,
+                "high": bar.high,
+                "low": bar.low,
+                "close": bar.close,
+                "volume": bar.volume,
+                "rsi": rsi_tail[i],
+            }
+            for i, bar in enumerate(bars)
+        ]
+
+        row = rows_by_label.get(label)
+        volume_summary = None
+        if row is not None:
+            volume_summary = {
+                "avg_volume": row.avg_volume,
+                "today_volume": row.today_volume,
+                "volume_ratio": row.volume_ratio,
+                "position": row.profile.position,
+                "poc_low": row.profile.poc_low,
+                "poc_high": row.profile.poc_high,
+                "resistance_price": row.profile.resistance_price,
+                "resistance_distance_pct": row.profile.resistance_distance_pct,
+                "support_price": row.profile.support_price,
+                "support_distance_pct": row.profile.support_distance_pct,
+            }
+
+        stocks.append(
+            {
+                "theme": item.theme,
+                "code": item.code,
+                "name": item.name,
+                "label": label,
+                "market_type": candidate.market,
+                "close": candidate.current_price,
+                "daily_rsi": daily_rsi,
+                "weekly_rsi": weekly_rsi,
+                "daily_bars": daily_bars_json,
+                "volume_summary": volume_summary,
+            }
+        )
+
+    payload = {
+        "market": "KR",
+        "generated_at": datetime.now().astimezone().isoformat(),
+        "stocks": stocks,
+    }
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / "kr_latest.json").write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    return payload
+
+
 def run_kr_volume_summary(
     token: str,
     alerts: list[tuple[WatchItem, float | None, float | None]],
     send_fn=None,
     log_fn=print,
     candidate_builder=None,
+    dashboard_output_dir: Path | None = None,
 ) -> str:
     """국내 RSI 과매도 알림 전송 '직후'에만 호출한다.
 
@@ -439,6 +524,12 @@ def run_kr_volume_summary(
     try:
         candidates = candidate_builder()
         rows = vp.build_summary_rows(candidates, log_fn=log_fn)
+
+        try:
+            export_kr_dashboard_data(alerts, candidates, rows, output_dir=dashboard_output_dir)
+        except Exception as exc:  # noqa: BLE001 - 대시보드 export 실패가 알림 자체에 영향을 주지 않음
+            log_fn(f"[대시보드 오류] 데이터 내보내기 실패: {exc}")
+
         message = vp.format_volume_summary("국내 종목", rows)
         if message:
             send_fn(message)
@@ -477,6 +568,7 @@ def main() -> int:
         message += "\n\n조회 실패 일부 있음:\n" + "\n".join(f"- {error}" for error in errors[:10])
         if len(errors) > 10:
             message += f"\n- 외 {len(errors) - 10}건"
+    message += f"\n\n📊 대시보드: {DASHBOARD_URL}"
 
     send_telegram(message)
     print(message)

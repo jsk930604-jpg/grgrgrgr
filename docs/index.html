@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>RSI 매물대 대시보드</title>
+    <meta name="description" content="국내/미국 테마별 RSI 과매도 알림 종목과 주봉 매물대 요약을 한눈에 보는 대시보드" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="app-header">
+        <div class="title-row">
+          <h1>RSI 매물대</h1>
+        </div>
+        <p class="updated-at" id="updatedAt">데이터 불러오는 중...</p>
+
+        <div class="market-toggle" id="marketToggle">
+          <button class="pill-btn active" data-market="ALL">전체</button>
+          <button class="pill-btn" data-market="KR">국내</button>
+          <button class="pill-btn" data-market="US">미국</button>
+        </div>
+
+        <nav class="tab-bar" id="tabBar">
+          <button class="tab-btn active" data-tab="list">알림 종목</button>
+          <button class="tab-btn" data-tab="chart">차트</button>
+          <button class="tab-btn" data-tab="profile">매물대 요약</button>
+        </nav>
+      </header>
+
+      <main>
+        <section class="tab-panel active" id="panel-list"></section>
+        <section class="tab-panel" id="panel-chart"></section>
+        <section class="tab-panel" id="panel-profile"></section>
+      </main>
+
+      <footer class="credit">RSI 과매도 알림 · 20일 평균 거래량 필터 · 주봉 매물대 요약</footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

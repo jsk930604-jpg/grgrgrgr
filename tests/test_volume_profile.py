@@ -117,6 +117,33 @@ def test_build_weekly_volume_profile_none_when_insufficient_bars():
     assert vp.build_weekly_volume_profile(bars, current_price=100.0) is None
 
 
+# --- 차트용 RSI 시계열 -------------------------------------------------------
+
+def test_rsi_series_length_matches_input_and_leading_none():
+    closes = [100.0 + i for i in range(20)]
+    series = vp.rsi_series(closes, period=14)
+    assert len(series) == len(closes)
+    assert all(v is None for v in series[:14])
+    assert series[14] is not None
+
+
+def test_rsi_series_last_value_matches_single_value_rsi_math():
+    # rsi_series의 마지막 값은 동일한 수학식을 쓰는 단순 단일값 계산과 일치해야 한다.
+    closes = [100, 98, 97, 99, 101, 95, 94, 93, 96, 99, 102, 101, 100, 98, 97]
+
+    def simple_rsi(values, period=14):
+        gains = [max(b - a, 0) for a, b in zip(values, values[1:])]
+        losses = [max(a - b, 0) for a, b in zip(values, values[1:])]
+        avg_gain = sum(gains[:period]) / period
+        avg_loss = sum(losses[:period]) / period
+        if avg_loss == 0:
+            return 100.0
+        return 100 - (100 / (1 + avg_gain / avg_loss))
+
+    series = vp.rsi_series(closes, period=14)
+    assert series[-1] == simple_rsi(closes, 14)
+
+
 # --- 요약 메시지 포맷 ---------------------------------------------------------
 
 def test_format_volume_summary_empty_rows_returns_empty_string():
