@@ -1,6 +1,6 @@
 {
   "market": "US",
-  "generated_at": "2026-08-08T07:03:33.290072+09:00",
+  "generated_at": "2026-08-11T07:05:42.342997+09:00",
   "stocks": [
     {
       "theme": "우주항공",
@@ -8,19 +8,10 @@
       "name": "YSS",
       "label": "YSS",
       "market_type": "US",
-      "close": 11.52,
-      "daily_rsi": 29.344620798338426,
-      "weekly_rsi": 31.24449850747871,
+      "close": 10.49,
+      "daily_rsi": 27.236408651591674,
+      "weekly_rsi": 30.46704822140947,
       "daily_bars": [
-        {
-          "date": "20260331",
-          "open": 21.21,
-          "high": 22.9304,
-          "low": 20.9,
-          "close": 22.17,
-          "volume": 1784076.0,
-          "rsi": 46.83127662503572
-        },
         {
           "date": "20260401",
           "open": 22.38,
@@ -818,9 +809,18 @@
           "open": 11.25,
           "high": 11.8,
           "low": 10.48,
-          "close": 11.52,
-          "volume": 2044961.0,
-          "rsi": 29.344620798338426
+          "close": 11.41,
+          "volume": 3932049.0,
+          "rsi": 28.873199876811043
+        },
+        {
+          "date": "20260810",
+          "open": 11.27,
+          "high": 11.93,
+          "low": 10.23,
+          "close": 10.49,
+          "volume": 1511213.0,
+          "rsi": 27.236408651591674
         }
       ],
       "volume_summary": null
@@ -831,8 +831,8 @@
       "name": "AIAI",
       "label": "AIAI",
       "market_type": "US",
-      "close": 4.0,
-      "daily_rsi": 21.725679051987896,
+      "close": 4.25,
+      "daily_rsi": 24.79121983406013,
       "weekly_rsi": null,
       "daily_bars": [
         {
@@ -1363,8 +1363,17 @@
           "high": 4.17,
           "low": 3.915,
           "close": 4.0,
-          "volume": 163407.0,
+          "volume": 201320.0,
           "rsi": 21.725679051987896
+        },
+        {
+          "date": "20260810",
+          "open": 4.09,
+          "high": 4.389,
+          "low": 4.0,
+          "close": 4.25,
+          "volume": 119272.0,
+          "rsi": 24.79121983406013
         }
       ],
       "volume_summary": null
