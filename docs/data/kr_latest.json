@@ -1,6 +1,6 @@
 {
   "market": "KR",
-  "generated_at": "2026-09-01T23:17:04.067593+09:00",
+  "generated_at": "2026-09-02T22:50:24.594130+09:00",
   "stocks": [
     {
       "theme": "로봇/ai",
@@ -8,9 +8,9 @@
       "name": "마키나락스",
       "label": "마키나락스(477850)",
       "market_type": "KOSDAQ",
-      "close": 24000.0,
-      "daily_rsi": 44.13400504853645,
-      "weekly_rsi": 29.53270451883361,
+      "close": 24550.0,
+      "daily_rsi": 45.7055633664241,
+      "weekly_rsi": 29.76821740751481,
       "daily_bars": [
         {
           "date": "20260604",
@@ -569,19 +569,28 @@
           "close": 24000.0,
           "volume": 592410.0,
           "rsi": 44.88352733064757
+        },
+        {
+          "date": "20260902",
+          "open": 23100.0,
+          "high": 25300.0,
+          "low": 22700.0,
+          "close": 24550.0,
+          "volume": 971386.0,
+          "rsi": 46.50641012897353
         }
       ],
       "volume_summary": {
-        "avg_volume": 2140839.8,
-        "today_volume": 592410.0,
-        "volume_ratio": 0.2767185101846481,
+        "avg_volume": 2058600.55,
+        "today_volume": 971386.0,
+        "volume_ratio": 0.4718671623788306,
         "position": "핵심 매물대 상단",
         "poc_low": 20438.0,
         "poc_high": 23947.0,
         "resistance_price": 25701.5,
-        "resistance_distance_pct": 7.089583333333334,
+        "resistance_distance_pct": 4.690427698574338,
         "support_price": 22192.5,
-        "support_distance_pct": 7.53125
+        "support_distance_pct": 9.60285132382892
       }
     }
   ]
