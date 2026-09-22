@@ -1,6 +1,6 @@
 {
   "market": "KR",
-  "generated_at": "2026-09-22T01:02:07.272071+09:00",
+  "generated_at": "2026-09-22T23:09:43.372567+09:00",
   "stocks": [
     {
       "theme": "로봇/ai",
@@ -8,9 +8,9 @@
       "name": "마키나락스",
       "label": "마키나락스(477850)",
       "market_type": "KOSDAQ",
-      "close": 21000.0,
-      "daily_rsi": 38.211417886124224,
-      "weekly_rsi": 28.042959654017253,
+      "close": 22300.0,
+      "daily_rsi": 45.06011061620716,
+      "weekly_rsi": 29.268351876098208,
       "daily_bars": [
         {
           "date": "20260624",
@@ -566,22 +566,31 @@
           "open": 21200.0,
           "high": 21400.0,
           "low": 20700.0,
-          "close": 21000.0,
+          "close": 20750.0,
           "volume": 204543.0,
-          "rsi": 40.05338391606166
+          "rsi": 39.20682874267605
+        },
+        {
+          "date": "20260922",
+          "open": 21250.0,
+          "high": 22750.0,
+          "low": 21250.0,
+          "close": 22300.0,
+          "volume": 706251.0,
+          "rsi": 46.725055699619034
         }
       ],
       "volume_summary": {
-        "avg_volume": 633835.75,
-        "today_volume": 204543.0,
-        "volume_ratio": 0.3227066318048485,
+        "avg_volume": 590645.8,
+        "today_volume": 706251.0,
+        "volume_ratio": 1.1957267790611563,
         "position": "핵심 매물대 내부",
         "poc_low": 20438.0,
         "poc_high": 23947.0,
-        "resistance_price": 22192.5,
-        "resistance_distance_pct": 5.678571428571429,
-        "support_price": null,
-        "support_distance_pct": null
+        "resistance_price": 25701.5,
+        "resistance_distance_pct": 15.253363228699552,
+        "support_price": 22192.5,
+        "support_distance_pct": 0.48206278026905836
       }
     },
     {
@@ -590,9 +599,9 @@
       "name": "엔젤로보틱스",
       "label": "엔젤로보틱스(408900)",
       "market_type": "KOSDAQ",
-      "close": 1014.0,
-      "daily_rsi": 41.85362210004046,
-      "weekly_rsi": 28.974414857604543,
+      "close": 992.0,
+      "daily_rsi": 39.38857756767067,
+      "weekly_rsi": 28.766746724209682,
       "daily_bars": [
         {
           "date": "20260624",
@@ -1147,10 +1156,19 @@
           "date": "20260921",
           "open": 1010.0,
           "high": 1018.0,
-          "low": 925.0,
-          "close": 1014.0,
+          "low": 984.0,
+          "close": 989.0,
           "volume": 36686.0,
-          "rsi": 42.4457771132708
+          "rsi": 39.42927650526479
+        },
+        {
+          "date": "20260922",
+          "open": 997.0,
+          "high": 1010.0,
+          "low": 968.0,
+          "close": 992.0,
+          "volume": 54434.0,
+          "rsi": 39.95105380631271
         }
       ],
       "volume_summary": null
