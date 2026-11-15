@@ -1,7 +1,7 @@
 (function () {
   "use strict";
   /* GR 테마 RSI 대시보드
-     데이터: data/kr_all.json (국내 전체 종목) · data/kr_latest.json (국내 과매도 알림 + 매물대) · data/us_latest.json (미국 과매도 알림 + 매물대) */
+     데이터: data/kr_all.json · data/us_all.json (전체 종목) · data/kr_latest.json · data/us_latest.json (과매도 알림 + 매물대) */
 
   const S = {
     market: "ALL",
@@ -10,7 +10,7 @@
     sort: "rsi",
     q: "",
     sel: null,
-    raw: { all: null, kr: null, us: null },
+    raw: { all: null, kr: null, us: null, usAll: null },
     stocks: [],
     view: null,
     cross: null,
@@ -44,7 +44,13 @@
       seen.add(s.code);
     }
     for (const s of krAlert.values()) if (!seen.has(s.code)) out.push(norm("KR", s, s));
-    for (const s of (S.raw.us && S.raw.us.stocks) || []) out.push(norm("US", s, s));
+    const usAlert = new Map(((S.raw.us && S.raw.us.stocks) || []).map((s) => [s.code, s]));
+    const seenU = new Set();
+    for (const s of (S.raw.usAll && S.raw.usAll.stocks) || []) {
+      out.push(norm("US", s, usAlert.get(s.code)));
+      seenU.add(s.code);
+    }
+    for (const s of usAlert.values()) if (!seenU.has(s.code)) out.push(norm("US", s, s));
     S.stocks = out;
   }
   function norm(src, s, alert) {
@@ -138,7 +144,10 @@
     const nOs = list.filter((s) => s.os).length,
       rs = list.filter((s) => s.dr != null).map((s) => s.dr),
       avg = rs.length ? rs.reduce((a, b) => a + b, 0) / rs.length : null;
-    const missAll = (S.market !== "US" && !S.raw.all) ? '<div class="info">ℹ️ 국내 <b>전체 종목</b> 데이터는 다음 자동 실행(평일 18:30) 뒤에 채워져요. 지금은 알림 종목만 보여요.</div>' : "";
+    const miss = [];
+    if (S.market !== "US" && !S.raw.all) miss.push("국내는 평일 18:30");
+    if (S.market !== "KR" && !S.raw.usAll) miss.push("미국은 평일 새벽 6:30");
+    const missAll = miss.length ? `<div class="info">ℹ️ <b>전체 종목</b> 데이터는 다음 자동 실행(${miss.join(" · ")}) 뒤에 채워져요. 그 전까진 알림 종목만 보여요.</div>` : "";
     let html = `${missAll}<div class="summary"><div><div class="k">종목</div><div class="v">${list.length}</div></div><div><div class="k">과매도 (RSI 30↓)</div><div class="v dn">${nOs}</div></div><div><div class="k">평균 일봉 RSI</div><div class="v">${avg == null ? "-" : avg.toFixed(1)}</div></div></div>
       <div class="chips">${[["전체", base.length], ...themes].map(([t, n]) => `<button class="chip ${S.theme === t ? "on" : ""}" data-t="${esc(t)}">${esc(t)}<b>${n}</b></button>`).join("")}</div>
       <div class="toolbar"><input id="q" placeholder="종목 이름·코드 찾기" value="${esc(S.q)}"><select id="sort">
@@ -452,10 +461,10 @@
   );
 
   (async function load() {
-    const [all, kr, us] = await Promise.all([getJson("./data/kr_all.json"), getJson("./data/kr_latest.json"), getJson("./data/us_latest.json")]);
-    S.raw = { all, kr, us };
+    const [all, kr, us, usAll] = await Promise.all([getJson("./data/kr_all.json"), getJson("./data/kr_latest.json"), getJson("./data/us_latest.json"), getJson("./data/us_all.json")]);
+    S.raw = { all, kr, us, usAll };
     build();
-    const ts = [all, kr, us].filter((d) => d && d.generated_at).map((d) => new Date(d.generated_at).getTime());
+    const ts = [all, kr, us, usAll].filter((d) => d && d.generated_at).map((d) => new Date(d.generated_at).getTime());
     $("updatedAt").textContent = ts.length ? "갱신 " + new Date(Math.max(...ts)).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }) : "아직 데이터 없음";
     render();
   })();

@@ -43,6 +43,7 @@ RSI_OVERSOLD = float(ENV.get("RSI_OVERSOLD", "30"))
 REQUEST_SLEEP_SEC = float(ENV.get("REQUEST_SLEEP_SEC", "0.25"))
 DASHBOARD_URL = ENV.get("DASHBOARD_URL", "https://jsk930604-jpg.github.io/grgrgrgr/")
 DASHBOARD_DATA_DIR = BASE_DIR / "docs" / "data"
+TOKEN_RETRY_WAIT_SEC = 65
 WATCHLIST_PATH = Path(
     ENV.get("WATCHLIST_PATH", str(Path.home() / "Desktop" / "테마별 종목코드.txt"))
 ).expanduser()
@@ -123,15 +124,22 @@ def get_kis_token() -> str:
             pass
 
     url = f"{KIS_BASE_URL}/oauth2/tokenP"
-    response = requests.post(
-        url,
-        json={
-            "grant_type": "client_credentials",
-            "appkey": KIS_APP_KEY,
-            "appsecret": KIS_APP_SECRET,
-        },
-        timeout=20,
-    )
+    # 한국투자증권은 접근토큰을 1분에 1번만 발급한다. 거절(403)되면 1분 넘게 기다렸다가 한 번 더 시도한다.
+    for attempt in range(2):
+        response = requests.post(
+            url,
+            json={
+                "grant_type": "client_credentials",
+                "appkey": KIS_APP_KEY,
+                "appsecret": KIS_APP_SECRET,
+            },
+            timeout=20,
+        )
+        if response.status_code == 403 and attempt == 0:
+            print(f"[토큰] 발급 거절(1분 1회 제한) → {TOKEN_RETRY_WAIT_SEC}초 뒤 다시 시도", flush=True)
+            time.sleep(TOKEN_RETRY_WAIT_SEC)
+            continue
+        break
     response.raise_for_status()
     data = response.json()
     token = data["access_token"]
