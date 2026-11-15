@@ -246,11 +246,12 @@ def format_alerts(alerts: list[tuple[WatchItem, float | None, float | None]]) ->
 # 과매도 Telegram 알림이 "실제로 전송된 직후"에만, 그 알림에 포함된 종목만 대상으로 실행된다.
 # ---------------------------------------------------------------------------
 
-def fetch_daily_ohlcv(token: str, code: str) -> list["vp.OhlcvBar"]:
+def fetch_daily_ohlcv(token: str, code: str, days: int = 90) -> list["vp.OhlcvBar"]:
     """20일 평균 거래량 계산용 국내 종목 일봉 OHLCV (기존 fetch_prices와 동일 엔드포인트,
-    거래량 등 전체 필드를 담아 별도로 조회한다 — 기존 fetch_prices 함수는 건드리지 않는다)."""
+    거래량 등 전체 필드를 담아 별도로 조회한다 — 기존 fetch_prices 함수는 건드리지 않는다).
+    days: 조회 기간(달력 기준). 대시보드 전체 종목 차트는 150일(최대 약 100거래일)을 쓴다."""
     end = datetime.now()
-    start = end - timedelta(days=90)
+    start = end - timedelta(days=days)
     url = f"{KIS_BASE_URL}/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice"
     headers = {
         "content-type": "application/json; charset=utf-8",
@@ -503,6 +504,94 @@ def export_kr_dashboard_data(
     return payload
 
 
+def export_kr_all_data(
+    rows: list[tuple[WatchItem, float | None, float | None]],
+    fetch_daily_fn,
+    output_dir: Path | None = None,
+    log_fn=print,
+    sleep_sec: float | None = None,
+    max_bars: int = 100,
+) -> dict:
+    """대시보드 '전체 종목' 탭용 스냅샷(kr_all.json).
+
+    watchlist의 모든 국내 종목(과매도 여부와 상관없이)의 일봉 OHLCV + RSI를 담는다.
+    같은 종목이 여러 테마에 있으면 한 번만 조회하고 themes에 모두 넣는다.
+    개별 종목 조회 실패는 건너뛰고 기록만 한다(알림에는 영향 없음)."""
+
+    output_dir = output_dir or DASHBOARD_DATA_DIR
+    sleep_sec = REQUEST_SLEEP_SEC if sleep_sec is None else sleep_sec
+
+    merged: dict[str, dict] = {}
+    for item, daily_rsi, weekly_rsi in rows:
+        entry = merged.get(item.code)
+        if entry is None:
+            merged[item.code] = {
+                "code": item.code,
+                "name": item.name,
+                "themes": [item.theme],
+                "daily_rsi": daily_rsi,
+                "weekly_rsi": weekly_rsi,
+            }
+        elif item.theme not in entry["themes"]:
+            entry["themes"].append(item.theme)
+
+    stocks = []
+    failed = []
+    for code, entry in merged.items():
+        try:
+            bars = list(fetch_daily_fn(code))
+        except Exception as exc:  # noqa: BLE001 - 한 종목 실패가 전체를 막지 않음
+            failed.append(f"{entry['name']}({code})")
+            log_fn(f"[전체 종목 오류] {entry['name']}({code}) 일봉 조회 실패: {exc}")
+            bars = []
+        if sleep_sec:
+            time.sleep(sleep_sec)
+
+        closes = [bar.close for bar in bars]
+        rsi_full = vp.rsi_series(closes, RSI_PERIOD) if closes else []
+        tail = bars[-max_bars:]
+        rsi_tail = rsi_full[-max_bars:]
+        close = closes[-1] if closes else None
+        prev = closes[-2] if len(closes) >= 2 else None
+        stocks.append(
+            {
+                **entry,
+                "theme": entry["themes"][0],
+                "label": f"{entry['name']}({code})",
+                "close": close,
+                "change_pct": ((close / prev - 1) * 100) if close and prev else None,
+                "oversold": bool(
+                    (entry["daily_rsi"] is not None and entry["daily_rsi"] <= RSI_OVERSOLD)
+                    or (entry["weekly_rsi"] is not None and entry["weekly_rsi"] <= RSI_OVERSOLD)
+                ),
+                "daily_bars": [
+                    {
+                        "date": bar.date,
+                        "open": bar.open,
+                        "high": bar.high,
+                        "low": bar.low,
+                        "close": bar.close,
+                        "volume": bar.volume,
+                        "rsi": rsi_tail[i] if i < len(rsi_tail) else None,
+                    }
+                    for i, bar in enumerate(tail)
+                ],
+            }
+        )
+
+    payload = {
+        "market": "KR",
+        "generated_at": datetime.now().astimezone().isoformat(),
+        "rsi_period": RSI_PERIOD,
+        "rsi_oversold": RSI_OVERSOLD,
+        "failed": failed,
+        "stocks": stocks,
+    }
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / "kr_all.json").write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+    return payload
+
+
 def run_kr_volume_summary(
     token: str,
     alerts: list[tuple[WatchItem, float | None, float | None]],
@@ -547,6 +636,7 @@ def main() -> int:
 
     token = get_kis_token()
     alerts: list[tuple[WatchItem, float | None, float | None]] = []
+    all_rows: list[tuple[WatchItem, float | None, float | None]] = []
     errors: list[str] = []
 
     for index, item in enumerate(items, start=1):
@@ -554,6 +644,7 @@ def main() -> int:
             daily_rsi = calculate_rsi(fetch_prices(token, item.code, "D"), RSI_PERIOD)
             time.sleep(REQUEST_SLEEP_SEC)
             weekly_rsi = calculate_rsi(fetch_prices(token, item.code, "W"), RSI_PERIOD)
+            all_rows.append((item, daily_rsi, weekly_rsi))
             if (daily_rsi is not None and daily_rsi <= RSI_OVERSOLD) or (
                 weekly_rsi is not None and weekly_rsi <= RSI_OVERSOLD
             ):
@@ -575,6 +666,12 @@ def main() -> int:
 
     # 과매도 알림이 실제로 전송된 직후에만, 그 알림에 포함된 종목만 대상으로 실행
     run_kr_volume_summary(token, alerts)
+
+    # 대시보드 '전체 종목' 탭용 데이터 (알림·매물대 요약이 모두 끝난 뒤, 실패해도 알림에는 영향 없음)
+    try:
+        export_kr_all_data(all_rows, lambda code: fetch_daily_ohlcv(token, code, days=150))
+    except Exception as exc:  # noqa: BLE001
+        print(f"[대시보드 오류] 전체 종목 데이터 내보내기 실패: {exc}")
 
     return 0
 
