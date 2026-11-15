@@ -217,10 +217,55 @@ def test_main_sends_rsi_alert_before_volume_summary(monkeypatch, tmp_path):
 
     monkeypatch.setattr(kr, "run_kr_volume_summary", fake_run_kr_volume_summary)
 
+    def fake_export_all(rows, fetch_daily_fn, **kwargs):
+        call_log.append(("all_data", [r[0].code for r in rows]))
+        return {}
+
+    monkeypatch.setattr(kr, "export_kr_all_data", fake_export_all)
+
     exit_code = kr.main()
 
     assert exit_code == 0
-    assert len(call_log) == 2
+    assert len(call_log) == 3
     assert call_log[0][0] == "telegram"
     assert "RSI 과매도 알림" in call_log[0][1]
     assert call_log[1][0] == "volume_summary"
+    # 전체 종목 대시보드 데이터는 알림·매물대 요약이 끝난 뒤, 과매도가 아닌 종목까지 모두 포함해 만든다
+    assert call_log[2] == ("all_data", ["000005"])
+
+
+def test_export_kr_all_data_merges_themes_and_skips_failures(tmp_path):
+    a = kr.WatchItem(theme="우주항공", code="089980", name="상아프론테크")
+    b = kr.WatchItem(theme="ess", code="089980", name="상아프론테크")
+    c = kr.WatchItem(theme="원자력", code="015760", name="한국전력")
+    d = kr.WatchItem(theme="양자", code="999999", name="실패종목")
+    bars = [
+        vp.OhlcvBar(date=f"2024{str(m).zfill(2)}{str(dd).zfill(2)}", open=100 + i, high=102 + i, low=99 + i, close=101 + i, volume=1000 + i)
+        for i, (m, dd) in enumerate([(1 + k // 28, 1 + k % 28) for k in range(40)])
+    ]
+
+    def fetch(code):
+        if code == "999999":
+            raise RuntimeError("조회 실패")
+        return bars
+
+    logs = []
+    payload = kr.export_kr_all_data(
+        [(a, 25.0, 40.0), (b, 25.0, 40.0), (c, 55.0, 60.0), (d, None, None)],
+        fetch,
+        output_dir=tmp_path,
+        log_fn=logs.append,
+        sleep_sec=0,
+    )
+
+    assert (tmp_path / "kr_all.json").exists()
+    by_code = {s["code"]: s for s in payload["stocks"]}
+    assert by_code["089980"]["themes"] == ["우주항공", "ess"]
+    assert by_code["089980"]["oversold"] is True
+    assert by_code["015760"]["oversold"] is False
+    assert len(by_code["015760"]["daily_bars"]) == 40
+    assert by_code["015760"]["daily_bars"][-1]["rsi"] is not None
+    assert by_code["015760"]["change_pct"] is not None
+    assert by_code["999999"]["daily_bars"] == []
+    assert payload["failed"] == ["실패종목(999999)"]
+    assert any("실패종목" in line for line in logs)
